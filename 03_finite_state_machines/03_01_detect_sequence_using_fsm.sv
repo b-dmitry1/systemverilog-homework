@@ -69,6 +69,59 @@ module detect_6_bit_sequence_using_fsm
   //
   // Hint: See Lecture 3 for details
 
+  // States
+  enum logic[2:0]
+  {
+     IDLE = 3'b000,
+     S1   = 3'b001,
+     S2   = 3'b010,
+     S3   = 3'b011,
+     S4   = 3'b100,
+     S5   = 3'b101,
+     S6   = 3'b110
+  }
+  state, new_state;
+
+  // state  when0  when1
+  // IDLE   stay   S1
+  // S1     IDLE   S2
+  // S2     S3     stay
+  // S3     S4     S1
+  // S4     IDLE   S5
+  // S5     IDLE   S6
+  // S6     S3     S2
+
+  // State transition logic
+  always_comb
+  begin
+    new_state = state;
+
+    case (state)
+      IDLE: if (  a) new_state = S1;   // First  "1" -> we are in
+      S1:   if (  a) new_state = S2;   // Second "1" -> ok, look for zeroes
+            else     new_state = IDLE; //            "0" -> start over
+      S2:   if (~ a) new_state = S3;   // Third  "0" -> ok, need the second one
+      S3:   if (~ a) new_state = S4;   // Fourth "0" -> ok, look for ones
+            else     new_state = S1;   //            "1" -> start from "First 1"
+      S4:   if (  a) new_state = S5;   // Fifth  "1" -> ok, almost there
+            else     new_state = IDLE; //            "0" -> start over
+      S5:   if (  a) new_state = S6;   // Sixth  "1" -> detected
+            else     new_state = IDLE; //            "0" -> start over
+      S6:   if (  a) new_state = S2;   //        "1" -> restart from S2
+            else     new_state = S3;   //            "0" -> restart from S3
+    endcase
+  end
+
+  // Output logic (depends only on the current state)
+  assign detected = (state == S6);
+
+  // State update
+  always_ff @ (posedge clk)
+    if (rst)
+      state <= IDLE;
+    else
+      state <= new_state;
+
 
 endmodule
 

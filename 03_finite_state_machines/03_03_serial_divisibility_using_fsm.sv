@@ -69,6 +69,95 @@ module serial_divisibility_by_5_using_fsm
   // Hint 2: As we are interested only in the remainder, all operations are performed under the modulo 5 (% 5).
   // Check manually how the remainder changes under such modulo.
 
+  // Mod5 table:
+  // 0 0 0 0 0   0
+  // 0 0 0 0 1   1
+  // 0 0 0 1 0   2
+  // 0 0 0 1 1   3
+  // 0 0 1 0 0   4
+  // 0 0 1 0 1   0
+  // 0 0 1 1 0   1
+  // 0 0 1 1 1   2
+  // 0 1 0 0 0   3
+  // 0 1 0 0 1   4
+  // 0 1 0 1 0   0
+  // 0 1 0 1 1   1
+  // 0 1 1 0 0   2
+  // 0 1 1 0 1   3
+  // 0 1 1 1 0   4
+  // 0 1 1 1 1   0
+  // 1 0 0 0 0   1
+  // 1 0 0 0 1   2
+  // 1 0 0 1 0   3
+  // 1 0 0 1 1   4
+  // 1 0 1 0 0   0
+  // 1 0 1 0 1   1
+  // 1 0 1 1 0   2
+  // 1 0 1 1 1   3
+  // 1 1 0 0 0   4
+  // 1 1 0 0 1   0
+  // 1 1 0 1 0   1
+  // 1 1 0 1 1   2
+  // 1 1 1 0 0   3
+  // 1 1 1 0 1   4
+  // 1 1 1 1 0   0
+  // 1 1 1 1 1   1
+
+  // We need 2 more states
+  enum logic[2:0]
+  {
+     mod_0 = 3'b000,
+     mod_1 = 3'b001,
+     mod_2 = 3'b010,
+     mod_3 = 3'b011,
+     mod_4 = 3'b100
+  }
+  state, new_state;
+
+  // According to Mod5 table, it will be: 
+  // Zeroes:
+  // 0 -> 0
+  // 1 -> 2
+  // 2 -> 4
+  // 3 -> 1
+  // 4 -> 3
+
+  // Ones:
+  // 0 -> 1
+  // 1 -> 3
+  // 2 -> 0
+  // 3 -> 2
+  // 4 -> 4
+
+  // State transition logic
+  always_comb
+  begin
+    new_state = state;
+
+    case (state)
+      mod_0 : if(new_bit) new_state = mod_1;
+              else        new_state = mod_0;
+      mod_1 : if(new_bit) new_state = mod_3;
+              else        new_state = mod_2;
+      mod_2 : if(new_bit) new_state = mod_0;
+              else        new_state = mod_4;
+      mod_3 : if(new_bit) new_state = mod_2;
+              else        new_state = mod_1;
+      mod_4 : if(new_bit) new_state = mod_4;
+              else        new_state = mod_3;
+    endcase
+  end
+
+  // Output logic
+  assign div_by_5 = state == mod_0;
+
+  // State update
+  always_ff @ (posedge clk)
+    if (rst)
+      state <= mod_0;
+    else
+      state <= new_state;
+
 
 endmodule
 
